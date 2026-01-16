@@ -4,6 +4,7 @@
 @using PublicServiceRegister.Services
 @inject IPublicServiceRepository ServiceRepository
 @inject ICategoryRepository CategoryRepository
+@inject IServiceProviderRepository ProviderRepository
 @inject NavigationManager Navigation
 @rendermode InteractiveServer
 
@@ -80,11 +81,29 @@
                                 </div>
                             </div>
 
-                            <div class="mb-3">
-                                <label for="provider" class="form-label">Provider/Organization *</label>
-                                <InputText id="provider" class="form-control" @bind-Value="model.Provider"
-                                           placeholder="Organization providing this service" />
-                                <ValidationMessage For="@(() => model.Provider)" class="text-danger" />
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label for="serviceProvider" class="form-label">Service Provider</label>
+                                    <InputSelect id="serviceProvider" class="form-select" @bind-Value="model.ServiceProviderId" @bind-Value:after="OnProviderChanged">
+                                        <option value="">Select a provider (optional)</option>
+                                        @if (providers != null)
+                                        {
+                                            @foreach (var provider in providers.Where(p => p.IsActive))
+                                            {
+                                                <option value="@provider.Id">@provider.Name (@provider.Type)</option>
+                                            }
+                                        }
+                                    </InputSelect>
+                                    <small class="text-muted">Link this service to a registered provider</small>
+                                </div>
+
+                                <div class="col-md-6 mb-3">
+                                    <label for="provider" class="form-label">Provider Name *</label>
+                                    <InputText id="provider" class="form-control" @bind-Value="model.Provider"
+                                               placeholder="Organization providing this service" />
+                                    <ValidationMessage For="@(() => model.Provider)" class="text-danger" />
+                                    <small class="text-muted">Auto-filled when provider is selected</small>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -176,6 +195,35 @@
                         </div>
                     </div>
 
+                    @if (isEditing)
+                    {
+                        <div class="card mb-4">
+                            <div class="card-header">
+                                <h5 class="mb-0">Version Information</h5>
+                            </div>
+                            <div class="card-body">
+                                <div class="row">
+                                    <div class="col-md-6 mb-3">
+                                        <label for="modifiedBy" class="form-label">Modified By</label>
+                                        <InputText id="modifiedBy" class="form-control" @bind-Value="modifiedBy"
+                                                   placeholder="Your name" />
+                                    </div>
+
+                                    <div class="col-md-6 mb-3">
+                                        <label for="changeDescription" class="form-label">Change Description</label>
+                                        <InputText id="changeDescription" class="form-control" @bind-Value="changeDescription"
+                                                   placeholder="Brief description of changes" />
+                                    </div>
+                                </div>
+
+                                <p class="text-muted mb-0">
+                                    <small>Current version: @model.Version |
+                                        This will create version @(model.Version + 1)</small>
+                                </p>
+                            </div>
+                        </div>
+                    }
+
                     @if (!string.IsNullOrEmpty(errorMessage))
                     {
                         <div class="alert alert-danger">
@@ -211,6 +259,10 @@
                             </li>
                             <li class="mb-2">
                                 <i class="bi bi-check-circle text-success"></i>
+                                Link to a registered provider for better tracking
+                            </li>
+                            <li class="mb-2">
+                                <i class="bi bi-check-circle text-success"></i>
                                 Include complete contact information
                             </li>
                             <li class="mb-2">
@@ -239,15 +291,19 @@
 
     private PublicService model = new();
     private IEnumerable<ServiceCategory>? categories;
+    private IEnumerable<ServiceProvider>? providers;
     private bool isEditing => Id > 0;
     private bool isLoading = true;
     private bool isSaving = false;
     private string errorMessage = string.Empty;
     private string newDocument = string.Empty;
+    private string modifiedBy = string.Empty;
+    private string changeDescription = string.Empty;
 
     protected override async Task OnInitializedAsync()
     {
         categories = await CategoryRepository.GetAllAsync();
+        providers = await ProviderRepository.GetAllAsync();
         await LoadService();
     }
 
@@ -271,6 +327,7 @@
                     Name = existingService.Name,
                     Description = existingService.Description,
                     CategoryId = existingService.CategoryId,
+                    ServiceProviderId = existingService.ServiceProviderId,
                     Provider = existingService.Provider,
                     ContactEmail = existingService.ContactEmail,
                     ContactPhone = existingService.ContactPhone,
@@ -281,7 +338,8 @@
                     RequiredDocuments = existingService.RequiredDocuments.ToList(),
                     Fee = existingService.Fee,
                     FeeDescription = existingService.FeeDescription,
-                    CreatedAt = existingService.CreatedAt
+                    CreatedAt = existingService.CreatedAt,
+                    Version = existingService.Version
                 };
             }
             else
@@ -298,6 +356,19 @@
         }
 
         isLoading = false;
+    }
+
+    private async Task OnProviderChanged()
+    {
+        if (model.ServiceProviderId.HasValue && providers != null)
+        {
+            var selectedProvider = providers.FirstOrDefault(p => p.Id == model.ServiceProviderId.Value);
+            if (selectedProvider != null)
+            {
+                model.Provider = selectedProvider.Name;
+            }
+        }
+        await Task.CompletedTask;
     }
 
     private async Task HandleSubmit()
@@ -334,7 +405,7 @@
         {
             if (isEditing)
             {
-                await ServiceRepository.UpdateAsync(model);
+                await ServiceRepository.UpdateAsync(model, modifiedBy, changeDescription);
             }
             else
             {

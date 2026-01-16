@@ -8,7 +8,9 @@ builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();
 
 // Register repositories
+builder.Services.AddSingleton<IVersionRepository, InMemoryVersionRepository>();
 builder.Services.AddSingleton<ICategoryRepository, InMemoryCategoryRepository>();
+builder.Services.AddSingleton<IServiceProviderRepository, InMemoryServiceProviderRepository>();
 builder.Services.AddSingleton<IPublicServiceRepository, InMemoryPublicServiceRepository>();
 
 var app = builder.Build();

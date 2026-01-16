@@ -1,0 +1,381 @@
+@page "/services/manage"
+@page "/services/manage/{Id:int}"
+@using PublicServiceRegister.Models
+@using PublicServiceRegister.Services
+@inject IPublicServiceRepository ServiceRepository
+@inject ICategoryRepository CategoryRepository
+@inject NavigationManager Navigation
+@rendermode InteractiveServer
+
+<PageTitle>@(isEditing ? "Edit Service" : "Add New Service") - Public Service Register</PageTitle>
+
+<div class="container-fluid">
+    <nav aria-label="breadcrumb" class="mb-3">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="/">Home</a></li>
+            <li class="breadcrumb-item"><a href="/services">Services</a></li>
+            <li class="breadcrumb-item active">@(isEditing ? "Edit Service" : "Add New Service")</li>
+        </ol>
+    </nav>
+
+    <h1>@(isEditing ? "Edit Service" : "Add New Service")</h1>
+
+    @if (isLoading)
+    {
+        <div class="d-flex justify-content-center py-5">
+            <div class="spinner-border" role="status">
+                <span class="visually-hidden">Loading...</span>
+            </div>
+        </div>
+    }
+    else
+    {
+        <div class="row">
+            <div class="col-lg-8">
+                <EditForm Model="@model" OnValidSubmit="HandleSubmit" FormName="serviceForm">
+                    <DataAnnotationsValidator />
+
+                    <div class="card mb-4">
+                        <div class="card-header">
+                            <h5 class="mb-0">Basic Information</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="mb-3">
+                                <label for="name" class="form-label">Service Name *</label>
+                                <InputText id="name" class="form-control" @bind-Value="model.Name" placeholder="Enter service name" />
+                                <ValidationMessage For="@(() => model.Name)" class="text-danger" />
+                            </div>
+
+                            <div class="mb-3">
+                                <label for="description" class="form-label">Description *</label>
+                                <InputTextArea id="description" class="form-control" rows="4" @bind-Value="model.Description"
+                                               placeholder="Describe the service and what it offers" />
+                                <ValidationMessage For="@(() => model.Description)" class="text-danger" />
+                            </div>
+
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label for="category" class="form-label">Category *</label>
+                                    <InputSelect id="category" class="form-select" @bind-Value="model.CategoryId">
+                                        <option value="0">Select a category</option>
+                                        @if (categories != null)
+                                        {
+                                            @foreach (var cat in categories)
+                                            {
+                                                <option value="@cat.Id">@cat.Name</option>
+                                            }
+                                        }
+                                    </InputSelect>
+                                    <ValidationMessage For="@(() => model.CategoryId)" class="text-danger" />
+                                </div>
+
+                                <div class="col-md-6 mb-3">
+                                    <label for="status" class="form-label">Status</label>
+                                    <InputSelect id="status" class="form-select" @bind-Value="model.Status">
+                                        @foreach (var status in Enum.GetValues<ServiceStatus>())
+                                        {
+                                            <option value="@status">@status</option>
+                                        }
+                                    </InputSelect>
+                                </div>
+                            </div>
+
+                            <div class="mb-3">
+                                <label for="provider" class="form-label">Provider/Organization *</label>
+                                <InputText id="provider" class="form-control" @bind-Value="model.Provider"
+                                           placeholder="Organization providing this service" />
+                                <ValidationMessage For="@(() => model.Provider)" class="text-danger" />
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="card mb-4">
+                        <div class="card-header">
+                            <h5 class="mb-0">Contact Information</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label for="email" class="form-label">Contact Email</label>
+                                    <InputText id="email" type="email" class="form-control" @bind-Value="model.ContactEmail"
+                                               placeholder="email@example.com" />
+                                </div>
+
+                                <div class="col-md-6 mb-3">
+                                    <label for="phone" class="form-label">Contact Phone</label>
+                                    <InputText id="phone" class="form-control" @bind-Value="model.ContactPhone"
+                                               placeholder="+1-555-0100" />
+                                </div>
+                            </div>
+
+                            <div class="mb-3">
+                                <label for="website" class="form-label">Website</label>
+                                <InputText id="website" class="form-control" @bind-Value="model.Website"
+                                           placeholder="https://example.com" />
+                            </div>
+
+                            <div class="mb-3">
+                                <label for="address" class="form-label">Address</label>
+                                <InputTextArea id="address" class="form-control" rows="2" @bind-Value="model.Address"
+                                               placeholder="Street address, city, state, zip code" />
+                            </div>
+
+                            <div class="mb-3">
+                                <label for="hours" class="form-label">Operating Hours</label>
+                                <InputText id="hours" class="form-control" @bind-Value="model.OperatingHours"
+                                           placeholder="e.g., Mon-Fri: 9AM-5PM" />
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="card mb-4">
+                        <div class="card-header">
+                            <h5 class="mb-0">Fees & Requirements</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="row">
+                                <div class="col-md-4 mb-3">
+                                    <label for="fee" class="form-label">Fee Amount ($)</label>
+                                    <InputNumber id="fee" class="form-control" @bind-Value="model.Fee"
+                                                 placeholder="0.00" />
+                                    <small class="text-muted">Leave empty if fees vary</small>
+                                </div>
+
+                                <div class="col-md-8 mb-3">
+                                    <label for="feeDescription" class="form-label">Fee Description</label>
+                                    <InputText id="feeDescription" class="form-control" @bind-Value="model.FeeDescription"
+                                               placeholder="e.g., Free for residents, fees may apply for..." />
+                                </div>
+                            </div>
+
+                            <div class="mb-3">
+                                <label class="form-label">Required Documents</label>
+                                <div class="input-group mb-2">
+                                    <input type="text" class="form-control" @bind="newDocument"
+                                           placeholder="Enter document name" @onkeyup="HandleDocumentKeyUp" />
+                                    <button type="button" class="btn btn-outline-primary" @onclick="AddDocument">
+                                        <i class="bi bi-plus"></i> Add
+                                    </button>
+                                </div>
+                                @if (model.RequiredDocuments != null && model.RequiredDocuments.Any())
+                                {
+                                    <ul class="list-group">
+                                        @foreach (var doc in model.RequiredDocuments)
+                                        {
+                                            <li class="list-group-item d-flex justify-content-between align-items-center">
+                                                @doc
+                                                <button type="button" class="btn btn-sm btn-outline-danger"
+                                                        @onclick="() => RemoveDocument(doc)">
+                                                    <i class="bi bi-x"></i>
+                                                </button>
+                                            </li>
+                                        }
+                                    </ul>
+                                }
+                            </div>
+                        </div>
+                    </div>
+
+                    @if (!string.IsNullOrEmpty(errorMessage))
+                    {
+                        <div class="alert alert-danger">
+                            <i class="bi bi-exclamation-triangle"></i> @errorMessage
+                        </div>
+                    }
+
+                    <div class="d-flex gap-2 mb-4">
+                        <button type="submit" class="btn btn-primary" disabled="@isSaving">
+                            @if (isSaving)
+                            {
+                                <span class="spinner-border spinner-border-sm me-1"></span>
+                            }
+                            <i class="bi bi-check-lg"></i> @(isEditing ? "Update Service" : "Create Service")
+                        </button>
+                        <a href="/services" class="btn btn-outline-secondary">
+                            <i class="bi bi-x-lg"></i> Cancel
+                        </a>
+                    </div>
+                </EditForm>
+            </div>
+
+            <div class="col-lg-4">
+                <div class="card sticky-top" style="top: 20px;">
+                    <div class="card-header">
+                        <h5 class="mb-0"><i class="bi bi-info-circle"></i> Tips</h5>
+                    </div>
+                    <div class="card-body">
+                        <ul class="list-unstyled mb-0">
+                            <li class="mb-2">
+                                <i class="bi bi-check-circle text-success"></i>
+                                Provide a clear, descriptive service name
+                            </li>
+                            <li class="mb-2">
+                                <i class="bi bi-check-circle text-success"></i>
+                                Include complete contact information
+                            </li>
+                            <li class="mb-2">
+                                <i class="bi bi-check-circle text-success"></i>
+                                List all required documents for users
+                            </li>
+                            <li class="mb-2">
+                                <i class="bi bi-check-circle text-success"></i>
+                                Specify operating hours clearly
+                            </li>
+                            <li>
+                                <i class="bi bi-check-circle text-success"></i>
+                                Keep the description informative but concise
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+</div>
+
+@code {
+    [Parameter]
+    public int Id { get; set; }
+
+    private PublicService model = new();
+    private IEnumerable<ServiceCategory>? categories;
+    private bool isEditing => Id > 0;
+    private bool isLoading = true;
+    private bool isSaving = false;
+    private string errorMessage = string.Empty;
+    private string newDocument = string.Empty;
+
+    protected override async Task OnInitializedAsync()
+    {
+        categories = await CategoryRepository.GetAllAsync();
+        await LoadService();
+    }
+
+    protected override async Task OnParametersSetAsync()
+    {
+        await LoadService();
+    }
+
+    private async Task LoadService()
+    {
+        isLoading = true;
+
+        if (isEditing)
+        {
+            var existingService = await ServiceRepository.GetByIdAsync(Id);
+            if (existingService != null)
+            {
+                model = new PublicService
+                {
+                    Id = existingService.Id,
+                    Name = existingService.Name,
+                    Description = existingService.Description,
+                    CategoryId = existingService.CategoryId,
+                    Provider = existingService.Provider,
+                    ContactEmail = existingService.ContactEmail,
+                    ContactPhone = existingService.ContactPhone,
+                    Website = existingService.Website,
+                    Address = existingService.Address,
+                    Status = existingService.Status,
+                    OperatingHours = existingService.OperatingHours,
+                    RequiredDocuments = existingService.RequiredDocuments.ToList(),
+                    Fee = existingService.Fee,
+                    FeeDescription = existingService.FeeDescription,
+                    CreatedAt = existingService.CreatedAt
+                };
+            }
+            else
+            {
+                Navigation.NavigateTo("/services");
+            }
+        }
+        else
+        {
+            model = new PublicService
+            {
+                RequiredDocuments = new List<string>()
+            };
+        }
+
+        isLoading = false;
+    }
+
+    private async Task HandleSubmit()
+    {
+        errorMessage = string.Empty;
+
+        if (string.IsNullOrWhiteSpace(model.Name))
+        {
+            errorMessage = "Service name is required.";
+            return;
+        }
+
+        if (string.IsNullOrWhiteSpace(model.Description))
+        {
+            errorMessage = "Description is required.";
+            return;
+        }
+
+        if (model.CategoryId == 0)
+        {
+            errorMessage = "Please select a category.";
+            return;
+        }
+
+        if (string.IsNullOrWhiteSpace(model.Provider))
+        {
+            errorMessage = "Provider/Organization is required.";
+            return;
+        }
+
+        isSaving = true;
+
+        try
+        {
+            if (isEditing)
+            {
+                await ServiceRepository.UpdateAsync(model);
+            }
+            else
+            {
+                await ServiceRepository.AddAsync(model);
+            }
+
+            Navigation.NavigateTo("/services");
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"An error occurred: {ex.Message}";
+        }
+        finally
+        {
+            isSaving = false;
+        }
+    }
+
+    private void AddDocument()
+    {
+        if (!string.IsNullOrWhiteSpace(newDocument))
+        {
+            model.RequiredDocuments ??= new List<string>();
+            if (!model.RequiredDocuments.Contains(newDocument))
+            {
+                model.RequiredDocuments.Add(newDocument);
+            }
+            newDocument = string.Empty;
+        }
+    }
+
+    private void HandleDocumentKeyUp(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter")
+        {
+            AddDocument();
+        }
+    }
+
+    private void RemoveDocument(string document)
+    {
+        model.RequiredDocuments?.Remove(document);
+    }
+}

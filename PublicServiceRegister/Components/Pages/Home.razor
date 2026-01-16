@@ -1,0 +1,197 @@
+@page "/"
+@using PublicServiceRegister.Models
+@using PublicServiceRegister.Services
+@inject IPublicServiceRepository ServiceRepository
+@inject ICategoryRepository CategoryRepository
+@inject NavigationManager Navigation
+@rendermode InteractiveServer
+
+<PageTitle>Public Service Register</PageTitle>
+
+<div class="container-fluid">
+    <div class="row mb-4">
+        <div class="col-12 text-center">
+            <h1 class="display-4">Public Service Register</h1>
+            <p class="lead">Find and access public services in your area</p>
+        </div>
+    </div>
+
+    <div class="row mb-4">
+        <div class="col-md-8 offset-md-2">
+            <div class="input-group input-group-lg">
+                <input type="text" class="form-control" placeholder="Search for services..."
+                       @bind="searchTerm" @bind:event="oninput" @onkeyup="HandleSearchKeyUp" />
+                <button class="btn btn-primary" @onclick="SearchServices">
+                    <i class="bi bi-search"></i> Search
+                </button>
+            </div>
+        </div>
+    </div>
+
+    @if (isSearching)
+    {
+        <div class="row mb-4">
+            <div class="col-12">
+                <h4>Search Results for "@searchTerm"</h4>
+                @if (searchResults != null && searchResults.Any())
+                {
+                    <div class="row">
+                        @foreach (var service in searchResults)
+                        {
+                            <div class="col-md-6 col-lg-4 mb-3">
+                                <div class="card h-100 service-card" @onclick="() => ViewService(service.Id)">
+                                    <div class="card-body">
+                                        <h5 class="card-title">@service.Name</h5>
+                                        <span class="badge bg-@GetStatusColor(service.Status) mb-2">@service.Status</span>
+                                        <p class="card-text text-muted small">@TruncateText(service.Description, 100)</p>
+                                        <p class="card-text"><small><i class="bi bi-building"></i> @service.Provider</small></p>
+                                    </div>
+                                </div>
+                            </div>
+                        }
+                    </div>
+                }
+                else
+                {
+                    <div class="alert alert-info">No services found matching your search.</div>
+                }
+                <button class="btn btn-outline-secondary" @onclick="ClearSearch">Clear Search</button>
+            </div>
+        </div>
+    }
+    else
+    {
+        <div class="row mb-4">
+            <div class="col-12">
+                <h3>Browse by Category</h3>
+            </div>
+        </div>
+
+        <div class="row mb-4">
+            @if (categories != null)
+            {
+                @foreach (var category in categories)
+                {
+                    <div class="col-6 col-md-4 col-lg-3 mb-3">
+                        <div class="card category-card h-100" @onclick="() => BrowseCategory(category.Id)">
+                            <div class="card-body text-center">
+                                <i class="@category.IconClass display-4 mb-2"></i>
+                                <h5 class="card-title">@category.Name</h5>
+                                <p class="card-text small text-muted">@category.Description</p>
+                            </div>
+                        </div>
+                    </div>
+                }
+            }
+        </div>
+
+        <div class="row">
+            <div class="col-12">
+                <h3>Featured Services</h3>
+            </div>
+        </div>
+
+        <div class="row">
+            @if (featuredServices != null)
+            {
+                @foreach (var service in featuredServices.Take(6))
+                {
+                    <div class="col-md-6 col-lg-4 mb-3">
+                        <div class="card h-100 service-card" @onclick="() => ViewService(service.Id)">
+                            <div class="card-body">
+                                <div class="d-flex justify-content-between align-items-start mb-2">
+                                    <h5 class="card-title mb-0">@service.Name</h5>
+                                    <span class="badge bg-@GetStatusColor(service.Status)">@service.Status</span>
+                                </div>
+                                @if (service.Category != null)
+                                {
+                                    <span class="badge bg-secondary mb-2">@service.Category.Name</span>
+                                }
+                                <p class="card-text">@TruncateText(service.Description, 120)</p>
+                                <p class="card-text"><small class="text-muted"><i class="bi bi-building"></i> @service.Provider</small></p>
+                            </div>
+                            <div class="card-footer bg-transparent">
+                                <small class="text-muted"><i class="bi bi-clock"></i> @service.OperatingHours</small>
+                            </div>
+                        </div>
+                    </div>
+                }
+            }
+        </div>
+    }
+</div>
+
+<style>
+    .category-card, .service-card {
+        cursor: pointer;
+        transition: transform 0.2s, box-shadow 0.2s;
+    }
+    .category-card:hover, .service-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+    }
+</style>
+
+@code {
+    private IEnumerable<ServiceCategory>? categories;
+    private IEnumerable<PublicService>? featuredServices;
+    private IEnumerable<PublicService>? searchResults;
+    private string searchTerm = string.Empty;
+    private bool isSearching = false;
+
+    protected override async Task OnInitializedAsync()
+    {
+        categories = await CategoryRepository.GetAllAsync();
+        featuredServices = await ServiceRepository.GetAllAsync();
+    }
+
+    private async Task SearchServices()
+    {
+        if (!string.IsNullOrWhiteSpace(searchTerm))
+        {
+            isSearching = true;
+            searchResults = await ServiceRepository.SearchAsync(searchTerm);
+        }
+    }
+
+    private async Task HandleSearchKeyUp(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter")
+        {
+            await SearchServices();
+        }
+    }
+
+    private void ClearSearch()
+    {
+        searchTerm = string.Empty;
+        isSearching = false;
+        searchResults = null;
+    }
+
+    private void BrowseCategory(int categoryId)
+    {
+        Navigation.NavigateTo($"/services/category/{categoryId}");
+    }
+
+    private void ViewService(int serviceId)
+    {
+        Navigation.NavigateTo($"/services/{serviceId}");
+    }
+
+    private string TruncateText(string text, int maxLength)
+    {
+        if (string.IsNullOrEmpty(text) || text.Length <= maxLength)
+            return text;
+        return text.Substring(0, maxLength) + "...";
+    }
+
+    private string GetStatusColor(ServiceStatus status) => status switch
+    {
+        ServiceStatus.Active => "success",
+        ServiceStatus.Inactive => "secondary",
+        ServiceStatus.UnderReview => "warning",
+        ServiceStatus.Deprecated => "danger",
+        _ => "secondary"
+    };
+}

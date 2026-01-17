@@ -8,10 +8,10 @@ public record DeleteProviderCommand(Guid Id) : ICommand;
 
 public class DeleteProviderCommandHandler : IRequestHandler<DeleteProviderCommand, Result>
 {
-    private readonly IServiceProviderRepository _repository;
+    private readonly IPublicServiceProviderRepository _repository;
     private readonly IUnitOfWork _unitOfWork;
 
-    public DeleteProviderCommandHandler(IServiceProviderRepository repository, IUnitOfWork unitOfWork)
+    public DeleteProviderCommandHandler(IPublicServiceProviderRepository repository, IUnitOfWork unitOfWork)
     {
         _repository = repository;
         _unitOfWork = unitOfWork;

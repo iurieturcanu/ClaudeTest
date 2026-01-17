@@ -35,13 +35,13 @@ public class UpdateServiceCommandHandler : IRequestHandler<UpdateServiceCommand,
 {
     private readonly IPublicServiceRepository _serviceRepository;
     private readonly IServiceCategoryRepository _categoryRepository;
-    private readonly IServiceProviderRepository _providerRepository;
+    private readonly IPublicServiceProviderRepository _providerRepository;
     private readonly IUnitOfWork _unitOfWork;
 
     public UpdateServiceCommandHandler(
         IPublicServiceRepository serviceRepository,
         IServiceCategoryRepository categoryRepository,
-        IServiceProviderRepository providerRepository,
+        IPublicServiceProviderRepository providerRepository,
         IUnitOfWork unitOfWork)
     {
         _serviceRepository = serviceRepository;

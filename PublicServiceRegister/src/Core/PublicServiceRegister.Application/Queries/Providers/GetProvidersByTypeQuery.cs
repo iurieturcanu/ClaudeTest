@@ -6,21 +6,21 @@ using PublicServiceRegister.Domain.Interfaces;
 
 namespace PublicServiceRegister.Application.Queries.Providers;
 
-public record GetProvidersByTypeQuery(ProviderType ProviderType) : IQuery<IEnumerable<ServiceProviderDto>>;
+public record GetProvidersByTypeQuery(ProviderType ProviderType) : IQuery<IEnumerable<PublicServiceProviderDto>>;
 
-public class GetProvidersByTypeQueryHandler : IRequestHandler<GetProvidersByTypeQuery, Result<IEnumerable<ServiceProviderDto>>>
+public class GetProvidersByTypeQueryHandler : IRequestHandler<GetProvidersByTypeQuery, Result<IEnumerable<PublicServiceProviderDto>>>
 {
-    private readonly IServiceProviderRepository _repository;
+    private readonly IPublicServiceProviderRepository _repository;
 
-    public GetProvidersByTypeQueryHandler(IServiceProviderRepository repository)
+    public GetProvidersByTypeQueryHandler(IPublicServiceProviderRepository repository)
     {
         _repository = repository;
     }
 
-    public async Task<Result<IEnumerable<ServiceProviderDto>>> Handle(GetProvidersByTypeQuery request, CancellationToken cancellationToken)
+    public async Task<Result<IEnumerable<PublicServiceProviderDto>>> Handle(GetProvidersByTypeQuery request, CancellationToken cancellationToken)
     {
         var providers = await _repository.GetByTypeAsync(request.ProviderType, cancellationToken);
-        var dtos = providers.Select(p => new ServiceProviderDto(
+        var dtos = providers.Select(p => new PublicServiceProviderDto(
             p.Id,
             p.Name,
             p.Description,
@@ -35,6 +35,6 @@ public class GetProvidersByTypeQueryHandler : IRequestHandler<GetProvidersByType
             p.CreatedAt,
             p.UpdatedAt));
 
-        return Result<IEnumerable<ServiceProviderDto>>.Success(dtos);
+        return Result<IEnumerable<PublicServiceProviderDto>>.Success(dtos);
     }
 }

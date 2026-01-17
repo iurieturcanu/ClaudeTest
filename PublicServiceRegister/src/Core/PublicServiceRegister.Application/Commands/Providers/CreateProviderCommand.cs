@@ -36,10 +36,10 @@ public class CreateProviderCommandValidator : AbstractValidator<CreateProviderCo
 
 public class CreateProviderCommandHandler : IRequestHandler<CreateProviderCommand, Result<Guid>>
 {
-    private readonly IServiceProviderRepository _repository;
+    private readonly IPublicServiceProviderRepository _repository;
     private readonly IUnitOfWork _unitOfWork;
 
-    public CreateProviderCommandHandler(IServiceProviderRepository repository, IUnitOfWork unitOfWork)
+    public CreateProviderCommandHandler(IPublicServiceProviderRepository repository, IUnitOfWork unitOfWork)
     {
         _repository = repository;
         _unitOfWork = unitOfWork;
@@ -56,7 +56,7 @@ public class CreateProviderCommandHandler : IRequestHandler<CreateProviderComman
             }
         }
 
-        var provider = ServiceProvider.Create(
+        var provider = PublicServiceProvider.Create(
             request.Name,
             request.Description,
             request.ProviderType,

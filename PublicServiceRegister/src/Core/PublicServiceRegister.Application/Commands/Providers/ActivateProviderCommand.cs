@@ -8,10 +8,10 @@ public record ActivateProviderCommand(Guid Id) : ICommand;
 
 public class ActivateProviderCommandHandler : IRequestHandler<ActivateProviderCommand, Result>
 {
-    private readonly IServiceProviderRepository _repository;
+    private readonly IPublicServiceProviderRepository _repository;
     private readonly IUnitOfWork _unitOfWork;
 
-    public ActivateProviderCommandHandler(IServiceProviderRepository repository, IUnitOfWork unitOfWork)
+    public ActivateProviderCommandHandler(IPublicServiceProviderRepository repository, IUnitOfWork unitOfWork)
     {
         _repository = repository;
         _unitOfWork = unitOfWork;

@@ -1,2 +1,17 @@
 <Solution>
+  <Folder Name="/src/" />
+  <Folder Name="/src/Core/">
+    <Project Path="src/Core/PublicServiceRegister.Api/PublicServiceRegister.Api.csproj" />
+    <Project Path="src/Core/PublicServiceRegister.Application/PublicServiceRegister.Application.csproj" />
+    <Project Path="src/Core/PublicServiceRegister.Domain/PublicServiceRegister.Domain.csproj" />
+    <Project Path="src/Core/PublicServiceRegister.Infrastructure/PublicServiceRegister.Infrastructure.csproj" />
+  </Folder>
+  <Folder Name="/src/Frontends/">
+    <Project Path="src/Frontends/PublicServiceRegister.Admin.Web/PublicServiceRegister.Admin.Web.csproj" />
+    <Project Path="src/Frontends/PublicServiceRegister.Officer.Web/PublicServiceRegister.Officer.Web.csproj" />
+    <Project Path="src/Frontends/PublicServiceRegister.Public.Web/PublicServiceRegister.Public.Web.csproj" />
+  </Folder>
+  <Folder Name="/src/Shared/">
+    <Project Path="src/Shared/PublicServiceRegister.Contracts/PublicServiceRegister.Contracts.csproj" />
+  </Folder>
 </Solution>

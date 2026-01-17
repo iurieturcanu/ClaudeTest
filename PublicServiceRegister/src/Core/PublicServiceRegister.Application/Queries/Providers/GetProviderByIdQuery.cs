@@ -5,26 +5,26 @@ using PublicServiceRegister.Domain.Interfaces;
 
 namespace PublicServiceRegister.Application.Queries.Providers;
 
-public record GetProviderByIdQuery(Guid Id) : IQuery<ServiceProviderDto>;
+public record GetProviderByIdQuery(Guid Id) : IQuery<PublicServiceProviderDto>;
 
-public class GetProviderByIdQueryHandler : IRequestHandler<GetProviderByIdQuery, Result<ServiceProviderDto>>
+public class GetProviderByIdQueryHandler : IRequestHandler<GetProviderByIdQuery, Result<PublicServiceProviderDto>>
 {
-    private readonly IServiceProviderRepository _repository;
+    private readonly IPublicServiceProviderRepository _repository;
 
-    public GetProviderByIdQueryHandler(IServiceProviderRepository repository)
+    public GetProviderByIdQueryHandler(IPublicServiceProviderRepository repository)
     {
         _repository = repository;
     }
 
-    public async Task<Result<ServiceProviderDto>> Handle(GetProviderByIdQuery request, CancellationToken cancellationToken)
+    public async Task<Result<PublicServiceProviderDto>> Handle(GetProviderByIdQuery request, CancellationToken cancellationToken)
     {
         var provider = await _repository.GetByIdAsync(request.Id, cancellationToken);
         if (provider == null)
         {
-            return Result<ServiceProviderDto>.Failure("Provider not found");
+            return Result<PublicServiceProviderDto>.Failure("Provider not found");
         }
 
-        var dto = new ServiceProviderDto(
+        var dto = new PublicServiceProviderDto(
             provider.Id,
             provider.Name,
             provider.Description,
@@ -39,6 +39,6 @@ public class GetProviderByIdQueryHandler : IRequestHandler<GetProviderByIdQuery,
             provider.CreatedAt,
             provider.UpdatedAt);
 
-        return Result<ServiceProviderDto>.Success(dto);
+        return Result<PublicServiceProviderDto>.Success(dto);
     }
 }

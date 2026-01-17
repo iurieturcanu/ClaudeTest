@@ -15,7 +15,7 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser, IdentityR
     }
 
     public DbSet<ServiceCategory> ServiceCategories => Set<ServiceCategory>();
-    public DbSet<ServiceProvider> ServiceProviders => Set<ServiceProvider>();
+    public DbSet<PublicServiceProvider> PublicServiceProviders => Set<PublicServiceProvider>();
     public DbSet<PublicService> PublicServices => Set<PublicService>();
     public DbSet<StoredEvent> StoredEvents => Set<StoredEvent>();
 
@@ -24,7 +24,7 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser, IdentityR
         base.OnModelCreating(modelBuilder);
 
         modelBuilder.ApplyConfiguration(new ServiceCategoryConfiguration());
-        modelBuilder.ApplyConfiguration(new ServiceProviderConfiguration());
+        modelBuilder.ApplyConfiguration(new PublicServiceProviderConfiguration());
         modelBuilder.ApplyConfiguration(new PublicServiceConfiguration());
         modelBuilder.ApplyConfiguration(new StoredEventConfiguration());
 

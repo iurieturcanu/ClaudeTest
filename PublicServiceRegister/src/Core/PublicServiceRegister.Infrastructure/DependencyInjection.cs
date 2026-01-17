@@ -36,7 +36,7 @@ public static class DependencyInjection
                 b => b.MigrationsAssembly(typeof(ApplicationDbContext).Assembly.FullName)));
 
         services.AddScoped<IServiceCategoryRepository, ServiceCategoryRepository>();
-        services.AddScoped<IServiceProviderRepository, ServiceProviderRepository>();
+        services.AddScoped<IPublicServiceProviderRepository, PublicServiceProviderRepository>();
         services.AddScoped<IPublicServiceRepository, PublicServiceRepository>();
         services.AddScoped<IEventStore, EventStore>();
         services.AddScoped<IUnitOfWork, UnitOfWork>();

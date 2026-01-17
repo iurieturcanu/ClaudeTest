@@ -20,11 +20,11 @@ public interface IServiceCategoryRepository : IRepository<Entities.ServiceCatego
     Task<IEnumerable<Entities.ServiceCategory>> GetActiveCategoriesAsync(CancellationToken cancellationToken = default);
 }
 
-public interface IServiceProviderRepository : IRepository<Entities.ServiceProvider>
+public interface IPublicServiceProviderRepository : IRepository<Entities.PublicServiceProvider>
 {
-    Task<Entities.ServiceProvider?> GetByRegistrationNumberAsync(string registrationNumber, CancellationToken cancellationToken = default);
-    Task<IEnumerable<Entities.ServiceProvider>> GetByTypeAsync(Enums.ProviderType providerType, CancellationToken cancellationToken = default);
-    Task<IEnumerable<Entities.ServiceProvider>> GetActiveProvidersAsync(CancellationToken cancellationToken = default);
+    Task<Entities.PublicServiceProvider?> GetByRegistrationNumberAsync(string registrationNumber, CancellationToken cancellationToken = default);
+    Task<IEnumerable<Entities.PublicServiceProvider>> GetByTypeAsync(Enums.ProviderType providerType, CancellationToken cancellationToken = default);
+    Task<IEnumerable<Entities.PublicServiceProvider>> GetActiveProvidersAsync(CancellationToken cancellationToken = default);
 }
 
 public interface IPublicServiceRepository : IRepository<Entities.PublicService>

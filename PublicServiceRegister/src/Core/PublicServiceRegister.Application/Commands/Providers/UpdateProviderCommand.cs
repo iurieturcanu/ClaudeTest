@@ -37,10 +37,10 @@ public class UpdateProviderCommandValidator : AbstractValidator<UpdateProviderCo
 
 public class UpdateProviderCommandHandler : IRequestHandler<UpdateProviderCommand, Result>
 {
-    private readonly IServiceProviderRepository _repository;
+    private readonly IPublicServiceProviderRepository _repository;
     private readonly IUnitOfWork _unitOfWork;
 
-    public UpdateProviderCommandHandler(IServiceProviderRepository repository, IUnitOfWork unitOfWork)
+    public UpdateProviderCommandHandler(IPublicServiceProviderRepository repository, IUnitOfWork unitOfWork)
     {
         _repository = repository;
         _unitOfWork = unitOfWork;

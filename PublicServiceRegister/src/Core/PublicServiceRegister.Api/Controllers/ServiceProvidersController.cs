@@ -7,7 +7,7 @@ using PublicServiceRegister.Domain.Enums;
 namespace PublicServiceRegister.Api.Controllers;
 
 [Authorize]
-public class ServiceProvidersController : ApiControllerBase
+public class PublicServiceProvidersController : ApiControllerBase
 {
     [HttpGet]
     [AllowAnonymous]

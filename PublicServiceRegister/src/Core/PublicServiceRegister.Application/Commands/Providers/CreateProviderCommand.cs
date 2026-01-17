@@ -10,12 +10,12 @@ namespace PublicServiceRegister.Application.Commands.Providers;
 public record CreateProviderCommand(
     string Name,
     string? Description,
-    ProviderType ProviderType,
-    string? RegistrationNumber,
+    ProviderType Type,
     string? ContactEmail,
     string? ContactPhone,
+    string? Website,
     string? Address,
-    string? Website) : ICommand<Guid>;
+    string? LogoUrl) : ICommand<Guid>;
 
 public class CreateProviderCommandValidator : AbstractValidator<CreateProviderCommand>
 {
@@ -47,24 +47,15 @@ public class CreateProviderCommandHandler : IRequestHandler<CreateProviderComman
 
     public async Task<Result<Guid>> Handle(CreateProviderCommand request, CancellationToken cancellationToken)
     {
-        if (!string.IsNullOrEmpty(request.RegistrationNumber))
-        {
-            var existing = await _repository.GetByRegistrationNumberAsync(request.RegistrationNumber, cancellationToken);
-            if (existing != null)
-            {
-                return Result<Guid>.Failure("A provider with this registration number already exists");
-            }
-        }
-
         var provider = PublicServiceProvider.Create(
             request.Name,
-            request.Description,
-            request.ProviderType,
-            request.RegistrationNumber,
+            request.Description ?? string.Empty,
+            request.Type,
             request.ContactEmail,
             request.ContactPhone,
+            request.Website,
             request.Address,
-            request.Website);
+            request.LogoUrl);
 
         await _repository.AddAsync(provider, cancellationToken);
         await _unitOfWork.SaveChangesAsync(cancellationToken);

@@ -10,12 +10,12 @@ public record UpdateProviderCommand(
     Guid Id,
     string Name,
     string? Description,
-    ProviderType ProviderType,
-    string? RegistrationNumber,
+    ProviderType Type,
     string? ContactEmail,
     string? ContactPhone,
+    string? Website,
     string? Address,
-    string? Website) : ICommand;
+    string? LogoUrl) : ICommand;
 
 public class UpdateProviderCommandValidator : AbstractValidator<UpdateProviderCommand>
 {
@@ -56,13 +56,13 @@ public class UpdateProviderCommandHandler : IRequestHandler<UpdateProviderComman
 
         provider.Update(
             request.Name,
-            request.Description,
-            request.ProviderType,
-            request.RegistrationNumber,
+            request.Description ?? string.Empty,
+            request.Type,
             request.ContactEmail,
             request.ContactPhone,
+            request.Website,
             request.Address,
-            request.Website);
+            request.LogoUrl);
 
         await _repository.UpdateAsync(provider, cancellationToken);
         await _unitOfWork.SaveChangesAsync(cancellationToken);

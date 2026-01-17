@@ -53,12 +53,12 @@ public class PublicServiceProvidersController : ApiControllerBase
             id,
             request.Name,
             request.Description,
-            request.ProviderType,
-            request.RegistrationNumber,
+            request.Type,
             request.ContactEmail,
             request.ContactPhone,
+            request.Website,
             request.Address,
-            request.Website);
+            request.LogoUrl);
         var result = await Mediator.Send(command, cancellationToken);
         return HandleResult(result);
     }
@@ -91,9 +91,9 @@ public class PublicServiceProvidersController : ApiControllerBase
 public record UpdateProviderRequest(
     string Name,
     string? Description,
-    ProviderType ProviderType,
-    string? RegistrationNumber,
+    ProviderType Type,
     string? ContactEmail,
     string? ContactPhone,
+    string? Website,
     string? Address,
-    string? Website);
+    string? LogoUrl);

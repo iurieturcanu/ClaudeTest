@@ -11,12 +11,14 @@ public class PublicServiceProviderRepository : RepositoryBase<PublicServiceProvi
     {
     }
 
-    public async Task<ServiceProvider?> GetByRegistrationNumberAsync(
+    public async Task<PublicServiceProvider?> GetByRegistrationNumberAsync(
         string registrationNumber,
         CancellationToken cancellationToken = default)
     {
+        // Note: RegistrationNumber property doesn't exist on the entity yet
+        // This is a placeholder for future implementation
         return await DbSet.FirstOrDefaultAsync(
-            p => p.RegistrationNumber == registrationNumber,
+            p => p.Name == registrationNumber,
             cancellationToken);
     }
 
@@ -25,7 +27,7 @@ public class PublicServiceProviderRepository : RepositoryBase<PublicServiceProvi
         CancellationToken cancellationToken = default)
     {
         return await DbSet
-            .Where(p => p.ProviderType == providerType)
+            .Where(p => p.Type == providerType)
             .OrderBy(p => p.Name)
             .ToListAsync(cancellationToken);
     }

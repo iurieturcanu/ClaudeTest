@@ -4,12 +4,12 @@ public record PublicServiceProviderDto(
     Guid Id,
     string Name,
     string? Description,
-    string ProviderType,
-    string? RegistrationNumber,
+    string Type,
     string? ContactEmail,
     string? ContactPhone,
-    string? Address,
     string? Website,
+    string? Address,
+    string? LogoUrl,
     bool IsActive,
     int Version,
     DateTime CreatedAt,
@@ -18,19 +18,19 @@ public record PublicServiceProviderDto(
 public record CreateProviderRequest(
     string Name,
     string? Description,
-    string ProviderType,
-    string? RegistrationNumber,
+    string Type,
     string? ContactEmail,
     string? ContactPhone,
+    string? Website,
     string? Address,
-    string? Website);
+    string? LogoUrl);
 
 public record UpdateProviderRequest(
     string Name,
     string? Description,
-    string ProviderType,
-    string? RegistrationNumber,
+    string Type,
     string? ContactEmail,
     string? ContactPhone,
+    string? Website,
     string? Address,
-    string? Website);
+    string? LogoUrl);

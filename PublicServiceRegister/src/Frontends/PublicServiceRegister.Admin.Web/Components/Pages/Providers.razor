@@ -1,0 +1,255 @@
+@page "/providers"
+@using PublicServiceRegister.Admin.Web.Services
+@using PublicServiceRegister.Contracts
+@inject ApiService ApiService
+@rendermode InteractiveServer
+
+<PageTitle>Providers - Admin Portal</PageTitle>
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1>Service Providers</h1>
+    <button class="btn btn-primary" @onclick="ShowCreateModal">Add Provider</button>
+</div>
+
+@if (isLoading)
+{
+    <div class="text-center">
+        <div class="spinner-border" role="status">
+            <span class="visually-hidden">Loading...</span>
+        </div>
+    </div>
+}
+else if (providers != null)
+{
+    <table class="table table-striped">
+        <thead>
+            <tr>
+                <th>Name</th>
+                <th>Type</th>
+                <th>Registration #</th>
+                <th>Contact</th>
+                <th>Status</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var provider in providers)
+            {
+                <tr>
+                    <td>@provider.Name</td>
+                    <td>@provider.ProviderType</td>
+                    <td>@provider.RegistrationNumber</td>
+                    <td>@provider.ContactEmail</td>
+                    <td>
+                        @if (provider.IsActive)
+                        {
+                            <span class="badge bg-success">Active</span>
+                        }
+                        else
+                        {
+                            <span class="badge bg-secondary">Inactive</span>
+                        }
+                    </td>
+                    <td>
+                        <button class="btn btn-sm btn-outline-primary" @onclick="() => ShowEditModal(provider)">Edit</button>
+                        @if (provider.IsActive)
+                        {
+                            <button class="btn btn-sm btn-outline-warning" @onclick="() => DeactivateProvider(provider.Id)">Deactivate</button>
+                        }
+                        else
+                        {
+                            <button class="btn btn-sm btn-outline-success" @onclick="() => ActivateProvider(provider.Id)">Activate</button>
+                        }
+                        <button class="btn btn-sm btn-outline-danger" @onclick="() => DeleteProvider(provider.Id)">Delete</button>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+
+@if (showModal)
+{
+    <div class="modal show d-block" tabindex="-1" style="background-color: rgba(0,0,0,0.5);">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">@(isEditing ? "Edit Provider" : "Create Provider")</h5>
+                    <button type="button" class="btn-close" @onclick="HideModal"></button>
+                </div>
+                <div class="modal-body">
+                    <EditForm Model="@formModel" OnValidSubmit="HandleSubmit">
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Name</label>
+                                <InputText @bind-Value="formModel.Name" class="form-control" />
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Provider Type</label>
+                                <InputSelect @bind-Value="formModel.ProviderType" class="form-control">
+                                    <option value="Government">Government</option>
+                                    <option value="Municipality">Municipality</option>
+                                    <option value="Agency">Agency</option>
+                                    <option value="PublicCompany">Public Company</option>
+                                    <option value="PrivateContractor">Private Contractor</option>
+                                    <option value="NonProfit">Non-Profit</option>
+                                </InputSelect>
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Description</label>
+                            <InputTextArea @bind-Value="formModel.Description" class="form-control" rows="2" />
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Registration Number</label>
+                                <InputText @bind-Value="formModel.RegistrationNumber" class="form-control" />
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Website</label>
+                                <InputText @bind-Value="formModel.Website" class="form-control" placeholder="https://" />
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Contact Email</label>
+                                <InputText @bind-Value="formModel.ContactEmail" class="form-control" type="email" />
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Contact Phone</label>
+                                <InputText @bind-Value="formModel.ContactPhone" class="form-control" />
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Address</label>
+                            <InputTextArea @bind-Value="formModel.Address" class="form-control" rows="2" />
+                        </div>
+                        <div class="d-flex justify-content-end gap-2">
+                            <button type="button" class="btn btn-secondary" @onclick="HideModal">Cancel</button>
+                            <button type="submit" class="btn btn-primary">Save</button>
+                        </div>
+                    </EditForm>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    private List<ServiceProviderDto>? providers;
+    private bool isLoading = true;
+    private bool showModal = false;
+    private bool isEditing = false;
+    private Guid? editingId;
+    private ProviderFormModel formModel = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadProviders();
+    }
+
+    private async Task LoadProviders()
+    {
+        isLoading = true;
+        try
+        {
+            providers = await ApiService.GetAsync<List<ServiceProviderDto>>("api/serviceproviders");
+        }
+        catch
+        {
+            providers = new List<ServiceProviderDto>();
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private void ShowCreateModal()
+    {
+        formModel = new ProviderFormModel { ProviderType = "Government" };
+        isEditing = false;
+        editingId = null;
+        showModal = true;
+    }
+
+    private void ShowEditModal(ServiceProviderDto provider)
+    {
+        formModel = new ProviderFormModel
+        {
+            Name = provider.Name,
+            Description = provider.Description,
+            ProviderType = provider.ProviderType,
+            RegistrationNumber = provider.RegistrationNumber,
+            ContactEmail = provider.ContactEmail,
+            ContactPhone = provider.ContactPhone,
+            Address = provider.Address,
+            Website = provider.Website
+        };
+        isEditing = true;
+        editingId = provider.Id;
+        showModal = true;
+    }
+
+    private void HideModal() => showModal = false;
+
+    private async Task HandleSubmit()
+    {
+        try
+        {
+            var request = new CreateProviderRequest(
+                formModel.Name,
+                formModel.Description,
+                formModel.ProviderType,
+                formModel.RegistrationNumber,
+                formModel.ContactEmail,
+                formModel.ContactPhone,
+                formModel.Address,
+                formModel.Website);
+
+            if (isEditing && editingId.HasValue)
+            {
+                await ApiService.PutAsync($"api/serviceproviders/{editingId}", new UpdateProviderRequest(
+                    formModel.Name, formModel.Description, formModel.ProviderType, formModel.RegistrationNumber,
+                    formModel.ContactEmail, formModel.ContactPhone, formModel.Address, formModel.Website));
+            }
+            else
+            {
+                await ApiService.PostAsync<CreateProviderRequest, Guid>("api/serviceproviders", request);
+            }
+            HideModal();
+            await LoadProviders();
+        }
+        catch { }
+    }
+
+    private async Task ActivateProvider(Guid id)
+    {
+        await ApiService.PostAsync($"api/serviceproviders/{id}/activate");
+        await LoadProviders();
+    }
+
+    private async Task DeactivateProvider(Guid id)
+    {
+        await ApiService.PostAsync($"api/serviceproviders/{id}/deactivate");
+        await LoadProviders();
+    }
+
+    private async Task DeleteProvider(Guid id)
+    {
+        await ApiService.DeleteAsync($"api/serviceproviders/{id}");
+        await LoadProviders();
+    }
+
+    private class ProviderFormModel
+    {
+        public string Name { get; set; } = string.Empty;
+        public string? Description { get; set; }
+        public string ProviderType { get; set; } = "Government";
+        public string? RegistrationNumber { get; set; }
+        public string? ContactEmail { get; set; }
+        public string? ContactPhone { get; set; }
+        public string? Address { get; set; }
+        public string? Website { get; set; }
+    }
+}

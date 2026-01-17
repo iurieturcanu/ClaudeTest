@@ -1,0 +1,260 @@
+@page "/users"
+@using PublicServiceRegister.Admin.Web.Services
+@using PublicServiceRegister.Contracts
+@inject ApiService ApiService
+@rendermode InteractiveServer
+
+<PageTitle>Users - Admin Portal</PageTitle>
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1>System Users</h1>
+    <button class="btn btn-primary" @onclick="ShowCreateModal">Add User</button>
+</div>
+
+@if (isLoading)
+{
+    <div class="text-center">
+        <div class="spinner-border" role="status">
+            <span class="visually-hidden">Loading...</span>
+        </div>
+    </div>
+}
+else if (users != null)
+{
+    <table class="table table-striped">
+        <thead>
+            <tr>
+                <th>Name</th>
+                <th>Email</th>
+                <th>Roles</th>
+                <th>Status</th>
+                <th>Last Login</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var user in users)
+            {
+                <tr>
+                    <td>@user.FirstName @user.LastName</td>
+                    <td>@user.Email</td>
+                    <td>
+                        @foreach (var role in user.Roles)
+                        {
+                            <span class="badge bg-info me-1">@role</span>
+                        }
+                    </td>
+                    <td>
+                        @if (user.IsActive)
+                        {
+                            <span class="badge bg-success">Active</span>
+                        }
+                        else
+                        {
+                            <span class="badge bg-secondary">Inactive</span>
+                        }
+                    </td>
+                    <td>@(user.LastLoginAt?.ToString("g") ?? "Never")</td>
+                    <td>
+                        <button class="btn btn-sm btn-outline-primary" @onclick="() => ShowEditModal(user)">Edit</button>
+                        @if (user.IsActive)
+                        {
+                            <button class="btn btn-sm btn-outline-warning" @onclick="() => DeactivateUser(user.Id)">Deactivate</button>
+                        }
+                        else
+                        {
+                            <button class="btn btn-sm btn-outline-success" @onclick="() => ActivateUser(user.Id)">Activate</button>
+                        }
+                        <button class="btn btn-sm btn-outline-danger" @onclick="() => DeleteUser(user.Id)">Delete</button>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+
+@if (showModal)
+{
+    <div class="modal show d-block" tabindex="-1" style="background-color: rgba(0,0,0,0.5);">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">@(isEditing ? "Edit User" : "Create User")</h5>
+                    <button type="button" class="btn-close" @onclick="HideModal"></button>
+                </div>
+                <div class="modal-body">
+                    <EditForm Model="@formModel" OnValidSubmit="HandleSubmit">
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">First Name</label>
+                                <InputText @bind-Value="formModel.FirstName" class="form-control" />
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Last Name</label>
+                                <InputText @bind-Value="formModel.LastName" class="form-control" />
+                            </div>
+                        </div>
+                        @if (!isEditing)
+                        {
+                            <div class="mb-3">
+                                <label class="form-label">Email</label>
+                                <InputText @bind-Value="formModel.Email" class="form-control" type="email" />
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Password</label>
+                                <InputText @bind-Value="formModel.Password" class="form-control" type="password" />
+                            </div>
+                        }
+                        <div class="mb-3">
+                            <label class="form-label">Roles</label>
+                            <div class="form-check">
+                                <input type="checkbox" class="form-check-input" id="roleAdmin"
+                                       checked="@formModel.Roles.Contains("Admin")"
+                                       @onchange="e => ToggleRole(\"Admin\", (bool)e.Value!)" />
+                                <label class="form-check-label" for="roleAdmin">Admin</label>
+                            </div>
+                            <div class="form-check">
+                                <input type="checkbox" class="form-check-input" id="roleOfficer"
+                                       checked="@formModel.Roles.Contains("Officer")"
+                                       @onchange="e => ToggleRole(\"Officer\", (bool)e.Value!)" />
+                                <label class="form-check-label" for="roleOfficer">Officer</label>
+                            </div>
+                            <div class="form-check">
+                                <input type="checkbox" class="form-check-input" id="rolePublic"
+                                       checked="@formModel.Roles.Contains("Public")"
+                                       @onchange="e => ToggleRole(\"Public\", (bool)e.Value!)" />
+                                <label class="form-check-label" for="rolePublic">Public</label>
+                            </div>
+                        </div>
+                        @if (isEditing)
+                        {
+                            <div class="mb-3 form-check">
+                                <InputCheckbox @bind-Value="formModel.IsActive" class="form-check-input" id="isActive" />
+                                <label class="form-check-label" for="isActive">Active</label>
+                            </div>
+                        }
+                        <div class="d-flex justify-content-end gap-2">
+                            <button type="button" class="btn btn-secondary" @onclick="HideModal">Cancel</button>
+                            <button type="submit" class="btn btn-primary">Save</button>
+                        </div>
+                    </EditForm>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    private List<UserDto>? users;
+    private bool isLoading = true;
+    private bool showModal = false;
+    private bool isEditing = false;
+    private Guid? editingId;
+    private UserFormModel formModel = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadUsers();
+    }
+
+    private async Task LoadUsers()
+    {
+        isLoading = true;
+        try
+        {
+            users = await ApiService.GetAsync<List<UserDto>>("api/users");
+        }
+        catch
+        {
+            users = new List<UserDto>();
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private void ShowCreateModal()
+    {
+        formModel = new UserFormModel();
+        isEditing = false;
+        editingId = null;
+        showModal = true;
+    }
+
+    private void ShowEditModal(UserDto user)
+    {
+        formModel = new UserFormModel
+        {
+            FirstName = user.FirstName,
+            LastName = user.LastName,
+            IsActive = user.IsActive,
+            Roles = new List<string>(user.Roles)
+        };
+        isEditing = true;
+        editingId = user.Id;
+        showModal = true;
+    }
+
+    private void HideModal() => showModal = false;
+
+    private void ToggleRole(string role, bool isChecked)
+    {
+        if (isChecked && !formModel.Roles.Contains(role))
+        {
+            formModel.Roles.Add(role);
+        }
+        else if (!isChecked && formModel.Roles.Contains(role))
+        {
+            formModel.Roles.Remove(role);
+        }
+    }
+
+    private async Task HandleSubmit()
+    {
+        try
+        {
+            if (isEditing && editingId.HasValue)
+            {
+                await ApiService.PutAsync($"api/users/{editingId}", new UpdateUserRequest(
+                    formModel.FirstName, formModel.LastName, formModel.IsActive, formModel.Roles));
+            }
+            else
+            {
+                await ApiService.PostAsync<CreateUserRequest, UserDto>("api/users", new CreateUserRequest(
+                    formModel.Email, formModel.Password, formModel.FirstName, formModel.LastName, formModel.Roles));
+            }
+            HideModal();
+            await LoadUsers();
+        }
+        catch { }
+    }
+
+    private async Task ActivateUser(Guid id)
+    {
+        await ApiService.PostAsync($"api/users/{id}/activate");
+        await LoadUsers();
+    }
+
+    private async Task DeactivateUser(Guid id)
+    {
+        await ApiService.PostAsync($"api/users/{id}/deactivate");
+        await LoadUsers();
+    }
+
+    private async Task DeleteUser(Guid id)
+    {
+        await ApiService.DeleteAsync($"api/users/{id}");
+        await LoadUsers();
+    }
+
+    private class UserFormModel
+    {
+        public string Email { get; set; } = string.Empty;
+        public string Password { get; set; } = string.Empty;
+        public string FirstName { get; set; } = string.Empty;
+        public string LastName { get; set; } = string.Empty;
+        public bool IsActive { get; set; } = true;
+        public List<string> Roles { get; set; } = new();
+    }
+}

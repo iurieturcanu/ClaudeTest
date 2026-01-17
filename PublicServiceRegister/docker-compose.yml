@@ -1,0 +1,101 @@
+version: '3.8'
+
+services:
+  db:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    container_name: psr-db
+    environment:
+      - ACCEPT_EULA=Y
+      - MSSQL_SA_PASSWORD=YourStrongPassword123!
+    ports:
+      - "1433:1433"
+    volumes:
+      - sqlserver-data:/var/opt/mssql
+    networks:
+      - psr-network
+    healthcheck:
+      test: ["CMD-SHELL", "/opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P YourStrongPassword123! -C -Q 'SELECT 1' || exit 1"]
+      interval: 10s
+      timeout: 3s
+      retries: 10
+      start_period: 10s
+
+  api:
+    build:
+      context: .
+      dockerfile: src/Core/PublicServiceRegister.Api/Dockerfile
+    container_name: psr-api
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ASPNETCORE_URLS=https://+:443;http://+:80
+      - ASPNETCORE_HTTPS_PORT=5001
+      - ConnectionStrings__DefaultConnection=Server=db;Database=PublicServiceRegister;User Id=sa;Password=YourStrongPassword123!;TrustServerCertificate=true
+      - JwtSettings__Secret=YourSuperSecretKeyThatIsAtLeast32CharactersLong!
+      - JwtSettings__Issuer=PublicServiceRegister.Api
+      - JwtSettings__Audience=PublicServiceRegister.Clients
+      - Cors__AllowedOrigins__0=https://localhost:5010
+      - Cors__AllowedOrigins__1=https://localhost:5020
+      - Cors__AllowedOrigins__2=https://localhost:5030
+    ports:
+      - "5001:443"
+      - "5000:80"
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - psr-network
+
+  admin-web:
+    build:
+      context: .
+      dockerfile: src/Frontends/PublicServiceRegister.Admin.Web/Dockerfile
+    container_name: psr-admin-web
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ASPNETCORE_URLS=https://+:443;http://+:80
+      - ApiSettings__BaseUrl=https://api:443
+    ports:
+      - "5010:443"
+    depends_on:
+      - api
+    networks:
+      - psr-network
+
+  officer-web:
+    build:
+      context: .
+      dockerfile: src/Frontends/PublicServiceRegister.Officer.Web/Dockerfile
+    container_name: psr-officer-web
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ASPNETCORE_URLS=https://+:443;http://+:80
+      - ApiSettings__BaseUrl=https://api:443
+    ports:
+      - "5020:443"
+    depends_on:
+      - api
+    networks:
+      - psr-network
+
+  public-web:
+    build:
+      context: .
+      dockerfile: src/Frontends/PublicServiceRegister.Public.Web/Dockerfile
+    container_name: psr-public-web
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ASPNETCORE_URLS=https://+:443;http://+:80
+      - ApiSettings__BaseUrl=https://api:443
+    ports:
+      - "5030:443"
+    depends_on:
+      - api
+    networks:
+      - psr-network
+
+networks:
+  psr-network:
+    driver: bridge
+
+volumes:
+  sqlserver-data:

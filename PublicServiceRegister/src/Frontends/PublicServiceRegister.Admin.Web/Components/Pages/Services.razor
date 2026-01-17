@@ -1,0 +1,283 @@
+@page "/services"
+@using PublicServiceRegister.Admin.Web.Services
+@using PublicServiceRegister.Contracts
+@inject ApiService ApiService
+@rendermode InteractiveServer
+
+<PageTitle>Services - Admin Portal</PageTitle>
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1>Public Services</h1>
+    <button class="btn btn-primary" @onclick="ShowCreateModal">Add Service</button>
+</div>
+
+@if (isLoading)
+{
+    <div class="text-center">
+        <div class="spinner-border" role="status">
+            <span class="visually-hidden">Loading...</span>
+        </div>
+    </div>
+}
+else if (services != null)
+{
+    <table class="table table-striped">
+        <thead>
+            <tr>
+                <th>Name</th>
+                <th>Category</th>
+                <th>Provider</th>
+                <th>Status</th>
+                <th>Version</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var service in services)
+            {
+                <tr>
+                    <td>@service.Name</td>
+                    <td>@service.CategoryName</td>
+                    <td>@service.ProviderName</td>
+                    <td>
+                        <span class="badge @GetStatusBadgeClass(service.Status)">@service.Status</span>
+                    </td>
+                    <td>v@service.Version</td>
+                    <td>
+                        <button class="btn btn-sm btn-outline-primary" @onclick="() => ShowEditModal(service)">Edit</button>
+                        @if (service.Status == "Draft")
+                        {
+                            <button class="btn btn-sm btn-outline-info" @onclick="() => SubmitForReview(service.Id)">Submit</button>
+                        }
+                        @if (service.Status == "UnderReview")
+                        {
+                            <button class="btn btn-sm btn-outline-success" @onclick="() => PublishService(service.Id)">Publish</button>
+                        }
+                        @if (service.Status == "Active")
+                        {
+                            <button class="btn btn-sm btn-outline-secondary" @onclick="() => ArchiveService(service.Id)">Archive</button>
+                        }
+                        <button class="btn btn-sm btn-outline-danger" @onclick="() => DeleteService(service.Id)">Delete</button>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+
+@if (showModal)
+{
+    <div class="modal show d-block" tabindex="-1" style="background-color: rgba(0,0,0,0.5);">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">@(isEditing ? "Edit Service" : "Create Service")</h5>
+                    <button type="button" class="btn-close" @onclick="HideModal"></button>
+                </div>
+                <div class="modal-body">
+                    <EditForm Model="@formModel" OnValidSubmit="HandleSubmit">
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Name</label>
+                                <InputText @bind-Value="formModel.Name" class="form-control" />
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Category</label>
+                                <InputSelect @bind-Value="formModel.CategoryId" class="form-control">
+                                    <option value="">Select a category</option>
+                                    @foreach (var category in categories ?? new List<ServiceCategoryDto>())
+                                    {
+                                        <option value="@category.Id">@category.Name</option>
+                                    }
+                                </InputSelect>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Provider</label>
+                                <InputSelect @bind-Value="formModel.ProviderId" class="form-control">
+                                    <option value="">Select a provider</option>
+                                    @foreach (var provider in providers ?? new List<ServiceProviderDto>())
+                                    {
+                                        <option value="@provider.Id">@provider.Name</option>
+                                    }
+                                </InputSelect>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Processing Time</label>
+                                <InputText @bind-Value="formModel.ProcessingTime" class="form-control" placeholder="e.g., 5-7 business days" />
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Description</label>
+                            <InputTextArea @bind-Value="formModel.Description" class="form-control" rows="2" />
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Requirements</label>
+                            <InputTextArea @bind-Value="formModel.Requirements" class="form-control" rows="2" />
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Fees</label>
+                                <InputText @bind-Value="formModel.Fees" class="form-control" />
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Contact Info</label>
+                                <InputText @bind-Value="formModel.ContactInfo" class="form-control" />
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Online Service URL</label>
+                            <InputText @bind-Value="formModel.OnlineServiceUrl" class="form-control" placeholder="https://" />
+                        </div>
+                        <div class="d-flex justify-content-end gap-2">
+                            <button type="button" class="btn btn-secondary" @onclick="HideModal">Cancel</button>
+                            <button type="submit" class="btn btn-primary">Save</button>
+                        </div>
+                    </EditForm>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    private List<PublicServiceDto>? services;
+    private List<ServiceCategoryDto>? categories;
+    private List<ServiceProviderDto>? providers;
+    private bool isLoading = true;
+    private bool showModal = false;
+    private bool isEditing = false;
+    private Guid? editingId;
+    private ServiceFormModel formModel = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadData();
+    }
+
+    private async Task LoadData()
+    {
+        isLoading = true;
+        try
+        {
+            services = await ApiService.GetAsync<List<PublicServiceDto>>("api/publicservices");
+            categories = await ApiService.GetAsync<List<ServiceCategoryDto>>("api/categories");
+            providers = await ApiService.GetAsync<List<ServiceProviderDto>>("api/serviceproviders");
+        }
+        catch
+        {
+            services = new List<PublicServiceDto>();
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private string GetStatusBadgeClass(string status) => status switch
+    {
+        "Active" => "bg-success",
+        "Draft" => "bg-secondary",
+        "UnderReview" => "bg-info",
+        "Archived" => "bg-dark",
+        _ => "bg-warning"
+    };
+
+    private void ShowCreateModal()
+    {
+        formModel = new ServiceFormModel();
+        isEditing = false;
+        editingId = null;
+        showModal = true;
+    }
+
+    private void ShowEditModal(PublicServiceDto service)
+    {
+        formModel = new ServiceFormModel
+        {
+            Name = service.Name,
+            Description = service.Description,
+            CategoryId = service.CategoryId,
+            ProviderId = service.ProviderId,
+            Requirements = service.Requirements,
+            Fees = service.Fees,
+            ProcessingTime = service.ProcessingTime,
+            ContactInfo = service.ContactInfo,
+            OnlineServiceUrl = service.OnlineServiceUrl
+        };
+        isEditing = true;
+        editingId = service.Id;
+        showModal = true;
+    }
+
+    private void HideModal() => showModal = false;
+
+    private async Task HandleSubmit()
+    {
+        try
+        {
+            var request = new CreateServiceRequest(
+                formModel.Name,
+                formModel.Description,
+                formModel.CategoryId,
+                formModel.ProviderId,
+                formModel.Requirements,
+                formModel.Fees,
+                formModel.ProcessingTime,
+                formModel.ContactInfo,
+                formModel.OnlineServiceUrl);
+
+            if (isEditing && editingId.HasValue)
+            {
+                await ApiService.PutAsync($"api/publicservices/{editingId}", new UpdateServiceRequest(
+                    formModel.Name, formModel.Description, formModel.CategoryId, formModel.ProviderId,
+                    formModel.Requirements, formModel.Fees, formModel.ProcessingTime, formModel.ContactInfo, formModel.OnlineServiceUrl));
+            }
+            else
+            {
+                await ApiService.PostAsync<CreateServiceRequest, Guid>("api/publicservices", request);
+            }
+            HideModal();
+            await LoadData();
+        }
+        catch { }
+    }
+
+    private async Task SubmitForReview(Guid id)
+    {
+        await ApiService.PostAsync($"api/publicservices/{id}/submit-for-review");
+        await LoadData();
+    }
+
+    private async Task PublishService(Guid id)
+    {
+        await ApiService.PostAsync($"api/publicservices/{id}/publish");
+        await LoadData();
+    }
+
+    private async Task ArchiveService(Guid id)
+    {
+        await ApiService.PostAsync($"api/publicservices/{id}/archive");
+        await LoadData();
+    }
+
+    private async Task DeleteService(Guid id)
+    {
+        await ApiService.DeleteAsync($"api/publicservices/{id}");
+        await LoadData();
+    }
+
+    private class ServiceFormModel
+    {
+        public string Name { get; set; } = string.Empty;
+        public string? Description { get; set; }
+        public Guid CategoryId { get; set; }
+        public Guid ProviderId { get; set; }
+        public string? Requirements { get; set; }
+        public string? Fees { get; set; }
+        public string? ProcessingTime { get; set; }
+        public string? ContactInfo { get; set; }
+        public string? OnlineServiceUrl { get; set; }
+    }
+}
